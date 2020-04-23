@@ -1,0 +1,94 @@
+#!/bin/bash
+
+## LISTA OS BANCOS DE DADOS EXISTENTE
+I=0
+## CARREGAR LISTA COM OS BANCO DE DADOS
+echo "ESCOLHA O BANCO:"
+for DATABASE in $(psql -U postgres -At --command="select datname from pg_database where datdba not in (10)")
+#array=("banco1" "banco2" "banco3" "banco4")
+#for DATABASE in "${array[@]}"
+do
+	echo "[ $I ] - ${DATABASE}"
+	LIST[$I]=${DATABASE}
+	((I++))
+done
+
+## USUARIO INFORMA QUAL BANCO FAZER O BKP
+read -p "INFORME O NUMERO DO BANCO [0]: " ID_BANCO
+#echo "BANCO SELECIONADO: [ ${LIST[${ID_BANCO}]} ]"
+
+## ARMAZENA O BANCO SELECIONADO.
+SELECTED_DB=${LIST[${ID_BANCO}]};
+
+## USUARIO INFORMA QUAL USUARIO FAZ O BKP
+read -p "INFORME O USUARIO OWNER [postgres]: " USER_DB_NAME
+
+## VERIFICA SE O USUARIO INFORMOU OUTRO OWNER DIFERENTE DO PADRAO.
+if [ -z "$USER_DB_NAME" ];
+then
+	SELECTED_USER="postgres"
+else
+	SELECTED_USER="${USER_DB_NAME}"
+fi
+#echo "USUARIO OWNER INFORMADO: ${SELECTED_USER}"
+
+## DATA E HORA ATUAL.
+NOW=$(date +"%Y%m%d%H%M")
+
+## NOME DO ARQUIVO
+NAME_DUMP="${SELECTED_DB}_${NOW}"
+
+## USUARIO INFORMA O NOME DO ARQUIVO.
+read -p "INFORME O NOME DO ARQUIVO DUMP [$NAME_DUMP]: " FILE_NAME
+
+## VERIFICO SE O USUARIO INFORMOU O NOME DO ARQUIVO CASO NAO USAR O DEFAULT
+if [ -z "$FILE_NAME" ];
+then
+	NAME_FILE_DUMP=$NAME_DUMP
+else
+	NAME_FILE_DUMP=$FILE_NAME
+fi
+
+## CAMINHO ONDE VAI FICAR OS ARQUIVOS DE DUMP
+PATH_FILE_DUMP="/var/www/dump/"
+## O NOME COM O CAMINHO DO ARQUIVO DE DUMP
+FILE_DUMP="${PATH_FILE_DUMP}${NAME_FILE_DUMP}.dump"
+
+## CONFIRMA AS CONFIGURACOES QUE SERAO FEITO OS BKP
+read -p "
+######################### CONFIRMACAO #########################
+
+- BANCO SELECIONADO 	= ${SELECTED_DB}
+- USUARIO OWNER 	= ${SELECTED_USER}
+- ARQUIVO E DIRETORIO	= ${FILE_DUMP}
+
+###############################################################
+ 
+CONFIRMA O DUMP DESTA CONFIGURACAO? [s/N]: " CONFIRME
+
+## VERIFICAR SE O USUARIO ACEITA O DUMP COM O BKP
+if [ "${CONFIRME}" = "S" ] || [ "${CONFIRME}" = "s" ];
+then
+
+echo "
+@@@@@@@@@@@@@@@@@@@@@ ATENCAO @@@@@@@@@@@@@@@@@@@@@
+
+PODE SER QUE SEJA SOLICITADO A SENHA DO USUARIO OWNER FIQUE ATENTO.	
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+"
+## EXECUTA O PROCESSO DE DUMP.
+##pg_dump -v -o -Fc ${SELECTED_DB} -U  ${SELECTED_USER} > ${FILE_DUMP}
+pg_dump --no-privileges --no-owner -v -o -Fc ${SELECTED_DB} -U  ${SELECTED_USER} > ${FILE_DUMP}
+
+## COMPACTA O ARQUIVO EM UM .ZIP
+zip -9 -rm "$NAME_FILE_DUMP.zip" $FILE_DUMP
+## TESTA O ARQUIVO COMPACTADO.
+unzip -t "${PATH_FILE_DUMP}$NAME_FILE_DUMP.zip"
+echo "
+
+DUMP FINALIZADO !!!!"
+fi
+
+#echo "QTD ${#LIST[@]}"
+#echo ${LIST[@]}
