@@ -44,7 +44,7 @@ I=0
 ## CARREGAR LISTA COM OS BANCO DE DADOS
 HOST="localhost"
 USER="postgres"
-PASS="taylon"
+PASS="password"
 
 read -p "ENTER NAME DATABASE: " READ_DATABASE
 read -p "ENTER BY OWNER: " BYOWNER
@@ -77,7 +77,7 @@ if [ $COUNT_OWNER -gt 1 ]; then
 				#     psql -h $HOST -d $DATABASE $USER <<-EOQ
 				# 	select *
 				# from information_schema.schemata p
-				# where p.schema_name not in ('pg_toast','pg_temp_1','pg_toast_temp_1','pg_catalog','information_schema') and catalog_name = 'dev_fabiolaserra';
+				# where p.schema_name not in ('pg_toast','pg_temp_1','pg_toast_temp_1','pg_catalog','information_schema') and catalog_name = '${DATABASE}';
 				# 	EOQ
 				## LIST ALL SCHEMA
 				echo "********************************************************************************************"
